@@ -67,20 +67,22 @@ def _build_agent_messages(
             f"using prior context to understand it.\n"
             f"Check for verifiable factual claims (prices, distances, regulations, business hours, etc.)."
             f"{location_ctx}\n\n"
-            f"Respond in this EXACT format (no extra text):\n"
-            f"REASONING: [팩트체크 여부를 결정한 근거를 1-2문장으로 한국어로 설명]\n"
-            f"RESULT: [Either \"SKIP\" if nothing to fact-check, or a concise 1-2 sentence "
-            f"fact-check note in {_LANG_NAME[response_lang]}, within 120 characters]"
+            f"Respond in this EXACT format with no extra text, no meta-commentary:\n"
+            f"REASONING: [주장에 대해 알고 있는 사실을 바탕으로 추론한 내용을 1-2문장으로 한국어로 설명. "
+            f"팩트체크할 내용이 없으면 그 이유를 설명]\n"
+            f"RESULT: [\"SKIP\" if nothing to fact-check, otherwise a single concise sentence "
+            f"stating your reasoned conclusion in {_LANG_NAME[response_lang]}]"
         )
     else:
         system_content = (
             f"You are a fact-checking assistant for a real-time translation app.\n"
             f"You have the full conversation history for context. Focus on the LATEST exchange, "
             f"using prior context to understand it.\n"
-            f"Check for verifiable factual claims (prices, distances, regulations, business hours, etc.)."
+            f"Any price, fare, distance, or figure stated by EITHER speaker is a verifiable factual claim."
             f"{location_ctx}\n"
-            f"- If the LATEST exchange contains a claim worth fact-checking: respond with a concise "
-            f"note in {_LANG_NAME[response_lang]}, within 120 characters.\n"
+            f"- If the LATEST exchange contains a verifiable factual claim: reason from your knowledge "
+            f"and respond with a single concise sentence in {_LANG_NAME[response_lang]} "
+            f"stating your conclusion. Output only the sentence, nothing else.\n"
             f"- Otherwise: respond with exactly \"SKIP\" and nothing else."
         )
 
@@ -105,9 +107,8 @@ def _build_agent_messages(
 
 
 def _parse_debug_response(raw: str) -> tuple[str, str]:
-    import re as _re
-    reasoning_match = _re.search(r"REASONING:\s*([\s\S]*?)(?=\nRESULT:)", raw, _re.IGNORECASE)
-    result_match = _re.search(r"RESULT:\s*([\s\S]*)$", raw, _re.IGNORECASE)
+    reasoning_match = re.search(r"REASONING:\s*([\s\S]*?)(?=\nRESULT:)", raw, re.IGNORECASE)
+    result_match = re.search(r"RESULT:\s*([\s\S]*)$", raw, re.IGNORECASE)
     reasoning = _strip_role_tokens(reasoning_match.group(1).strip() if reasoning_match else "")
     result = _strip_role_tokens(result_match.group(1).strip() if result_match else raw)
     return reasoning, result
